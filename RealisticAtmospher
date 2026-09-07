@@ -1,0 +1,210 @@
+-- LocalScript (StarterPlayerScripts veya StarterGui'ye koyun)
+
+local Players = game:GetService("Players")
+local Lighting = game:GetService("Lighting")
+local Terrain = workspace:FindFirstChildOfClass("Terrain")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+
+local originalLighting = {
+    Brightness = Lighting.Brightness,
+    ClockTime = Lighting.ClockTime,
+    GlobalShadows = Lighting.GlobalShadows,
+    OutdoorAmbient = Lighting.OutdoorAmbient,
+    Ambient = Lighting.Ambient,
+    FogEnd = Lighting.FogEnd,
+    FogStart = Lighting.FogStart,
+    FogColor = Lighting.FogColor,
+    ExposureCompensation = Lighting.ExposureCompensation,
+    EnvironmentDiffuseScale = Lighting.EnvironmentDiffuseScale,
+    EnvironmentSpecularScale = Lighting.EnvironmentSpecularScale
+}
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = player.PlayerGui
+ScreenGui.Name = "UltraRealisticLightingGUI"
+ScreenGui.ResetOnSpawn = false
+
+-- Bilgi mesajı
+local msg = Instance.new("TextLabel")
+msg.Parent = ScreenGui
+msg.Size = UDim2.new(0.8, 0, 0.3, 0)
+msg.Position = UDim2.new(0.1, 0, 0.35, 0)
+msg.BackgroundTransparency = 1
+msg.Text = "To run the script, click the lightning (⚡️) symbol in the top right corner.\n\nprepared by halilibrahimseviml1"
+msg.TextColor3 = Color3.new(1, 1, 1)
+msg.TextScaled = true
+msg.Font = Enum.Font.GothamBold
+msg.TextWrapped = true
+
+-- ⚡️ Butonu (Taşınabilir / Sürüklenebilir)
+local btn = Instance.new("TextButton")
+btn.Parent = ScreenGui
+btn.Size = UDim2.new(0, 40, 0, 40)
+btn.Position = UDim2.new(1, -55, 0, 10)
+btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+btn.Text = "⚡️"
+btn.TextSize = 22
+btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+btn.Font = Enum.Font.GothamBold
+btn.AutoButtonColor = false
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 8)
+corner.Parent = btn
+
+-- Şimşek Butonunu Sürükleme (Drag) Mantığı
+local dragging = false
+local dragInput, dragStart, startPos
+
+local function updateInput(input)
+    local delta = input.Position - dragStart
+    btn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+btn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = btn.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+btn.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        updateInput(input)
+    end
+end)
+
+local active = false
+
+-- Gerçekçi Işıklandırma, Materyal ve Su Ayarları
+local function applyUltraRealism()
+    Lighting.ClockTime = 15 -- Gerçekçi gün ışığı açısı
+    Lighting.GlobalShadows = true
+    Lighting.Brightness = 2.4
+
+    -- Materyallere göre ışık yansıması ve doku parlaklıkları (PBR)
+    Lighting.EnvironmentDiffuseScale = 1
+    Lighting.EnvironmentSpecularScale = 1
+    Lighting.ExposureCompensation = 0.1
+
+    -- Doğal Işık Tonları
+    Lighting.OutdoorAmbient = Color3.fromRGB(140, 145, 150)
+    Lighting.Ambient = Color3.fromRGB(80, 85, 90)
+    Lighting.FogEnd = 100000
+
+    -- Su Gerçekçiliği (Net yansıma, berraklık ve doğal dalgalar)
+    if Terrain then
+        Terrain.WaterWaveSize = 0.12
+        Terrain.WaterWaveSpeed = 7
+        Terrain.WaterTransparency = 0.85
+        Terrain.WaterReflectance = 1
+        Terrain.WaterColor = Color3.fromRGB(35, 85, 115)
+    end
+
+    -- Doğal Atmosfer Derinliği
+    local atmos = Lighting:FindFirstChild("RealAtmosphere")
+    if not atmos then
+        atmos = Instance.new("Atmosphere", Lighting)
+        atmos.Name = "RealAtmosphere"
+    end
+    atmos.Enabled = true
+    atmos.Density = 0.22
+    atmos.Offset = 0.25
+    atmos.Haze = 0.8
+    atmos.Color = Color3.fromRGB(200, 220, 240)
+    atmos.Decay = Color3.fromRGB(150, 170, 190)
+
+    -- Gerçekçi Renk Dengesi
+    local cc = Lighting:FindFirstChild("RealCC")
+    if not cc then
+        cc = Instance.new("ColorCorrectionEffect", Lighting)
+        cc.Name = "RealCC"
+    end
+    cc.Enabled = true
+    cc.Saturation = 0.1
+    cc.Contrast = 0.08
+    cc.TintColor = Color3.fromRGB(255, 255, 255)
+
+    -- Güneşe Bağlı Işık Huzmeleri
+    local sun = Lighting:FindFirstChild("RealSun")
+    if not sun then
+        sun = Instance.new("SunRaysEffect", Lighting)
+        sun.Name = "RealSun"
+    end
+    sun.Enabled = true
+    sun.Intensity = 0.15
+    sun.Spread = 0.85
+
+    -- Alan Derinliği (Kamera Odağı)
+    local dof = Lighting:FindFirstChild("RealDOF")
+    if not dof then
+        dof = Instance.new("DepthOfFieldEffect", Lighting)
+        dof.Name = "RealDOF"
+    end
+    dof.Enabled = true
+    dof.FarIntensity = 0.12
+    dof.FocusDistance = 90
+    dof.InFocusRadius = 50
+    dof.NearIntensity = 0
+end
+
+local function resetLighting()
+    Lighting.Brightness = originalLighting.Brightness
+    Lighting.ClockTime = originalLighting.ClockTime
+    Lighting.GlobalShadows = originalLighting.GlobalShadows
+    Lighting.OutdoorAmbient = originalLighting.OutdoorAmbient
+    Lighting.Ambient = originalLighting.Ambient
+    Lighting.FogEnd = originalLighting.FogEnd
+    Lighting.FogStart = originalLighting.FogStart
+    Lighting.FogColor = originalLighting.FogColor
+    Lighting.ExposureCompensation = originalLighting.ExposureCompensation
+    Lighting.EnvironmentDiffuseScale = originalLighting.EnvironmentDiffuseScale
+    Lighting.EnvironmentSpecularScale = originalLighting.EnvironmentSpecularScale
+
+    for _, effectName in ipairs({"RealAtmosphere", "RealCC", "RealSun", "RealDOF"}) do
+        local fx = Lighting:FindFirstChild(effectName)
+        if fx then fx.Enabled = false end
+    end
+
+    if Terrain then
+        Terrain.WaterWaveSize = 0.05
+        Terrain.WaterWaveSpeed = 4
+        Terrain.WaterTransparency = 0.5
+        Terrain.WaterReflectance = 0
+    end
+end
+
+-- Tıklama Olayı
+btn.MouseButton1Click:Connect(function()
+    -- Tıklandığı an ortadaki yazıyı tamamen siler
+    if msg then
+        msg:Destroy()
+        msg = nil
+    end
+
+    active = not active
+
+    if active then
+        applyUltraRealism()
+        btn.BackgroundColor3 = Color3.fromRGB(255, 220, 0)
+        btn.TextColor3 = Color3.fromRGB(0, 0, 0)
+    else
+        resetLighting()
+        btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    end
+end)
