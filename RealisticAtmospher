@@ -1,4 +1,6 @@
--- LocalScript (StarterPlayerScripts veya StarterGui'ye koyun)
+--[[
+	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
+]]
 
 local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
@@ -37,7 +39,7 @@ msg.TextScaled = true
 msg.Font = Enum.Font.GothamBold
 msg.TextWrapped = true
 
--- ⚡️ Butonu (Taşınabilir / Sürüklenebilir)
+-- ⚡️ Butonu (Sürüklenebilir)
 local btn = Instance.new("TextButton")
 btn.Parent = ScreenGui
 btn.Size = UDim2.new(0, 40, 0, 40)
@@ -53,24 +55,19 @@ local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 8)
 corner.Parent = btn
 
--- Şimşek Butonunu Sürükleme (Drag) Mantığı
-local dragging = false
-local dragInput, dragStart, startPos
-
-local function updateInput(input)
-    local delta = input.Position - dragStart
-    btn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-end
+-- Şimşek Butonu Sürükleme Mantığı
+local draggingBtn = false
+local dragInputBtn, dragStartBtn, startPosBtn
 
 btn.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = btn.Position
+        draggingBtn = true
+        dragStartBtn = input.Position
+        startPosBtn = btn.Position
 
         input.Changed:Connect(function()
             if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
+                draggingBtn = false
             end
         end)
     end
@@ -78,35 +75,220 @@ end)
 
 btn.InputChanged:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
+        dragInputBtn = input
     end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        updateInput(input)
+    if input == dragInputBtn and draggingBtn then
+        local delta = input.Position - dragStartBtn
+        btn.Position = UDim2.new(startPosBtn.X.Scale, startPosBtn.X.Offset + delta.X, startPosBtn.Y.Scale, startPosBtn.Y.Offset + delta.Y)
     end
 end)
 
+-- Ana Menü Penceresi (Draggable & Mobil Uyumlu)
+local mainFrame = Instance.new("Frame")
+mainFrame.Parent = ScreenGui
+mainFrame.Size = UDim2.new(0, 420, 0, 280)
+mainFrame.Position = UDim2.new(0.5, -210, 0.5, -140)
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+mainFrame.Visible = false
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 10)
+mainCorner.Parent = mainFrame
+
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Color = Color3.fromRGB(50, 50, 50)
+mainStroke.Thickness = 2
+mainStroke.Parent = mainFrame
+
+-- Menü Sürükleme Mantığı (Header veya Frame üzerinden)
+local draggingMenu = false
+local dragInputMenu, dragStartMenu, startPosMenu
+
+mainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        draggingMenu = true
+        dragStartMenu = input.Position
+        startPosMenu = mainFrame.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                draggingMenu = false
+            end
+        end)
+    end
+end)
+
+mainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInputMenu = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInputMenu and draggingMenu then
+        local delta = input.Position - dragStartMenu
+        mainFrame.Position = UDim2.new(startPosMenu.X.Scale, startPosMenu.X.Offset + delta.X, startPosMenu.Y.Scale, startPosMenu.Y.Offset + delta.Y)
+    end
+end)
+
+-- Sol Menü (Tab Bar)
+local leftBar = Instance.new("Frame")
+leftBar.Parent = mainFrame
+leftBar.Size = UDim2.new(0, 60, 1, 0)
+leftBar.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
+leftBar.BorderSizePixel = 0
+
+local leftCorner = Instance.new("UICorner")
+leftCorner.CornerRadius = UDim.new(0, 10)
+leftCorner.Parent = leftBar
+
+-- Tab Butonları için Layout
+local tabLayout = Instance.new("UIListLayout")
+tabLayout.Parent = leftBar
+tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+tabLayout.Padding = UDim.new(0, 8)
+tabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+tabLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+-- Main Tab Butonu (🏠)
+local tabMain = Instance.new("TextButton")
+tabMain.Parent = leftBar
+tabMain.Size = UDim2.new(0, 44, 0, 44)
+tabMain.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+tabMain.Text = "🏠"
+tabMain.TextSize = 20
+tabMain.Font = Enum.Font.GothamBold
+local tmCorner = Instance.new("UICorner")
+tmCorner.CornerRadius = UDim.new(0, 8)
+tmCorner.Parent = tabMain
+
+-- Chat Tab Butonu (💬)
+local tabChat = Instance.new("TextButton")
+tabChat.Parent = leftBar
+tabChat.Size = UDim2.new(0, 44, 0, 44)
+tabChat.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+tabChat.Text = "💬"
+tabChat.TextSize = 20
+tabChat.Font = Enum.Font.GothamBold
+local tcCorner = Instance.new("UICorner")
+tcCorner.CornerRadius = UDim.new(0, 8)
+tcCorner.Parent = tabChat
+
+-- İçerik Alanları
+local contentFrame = Instance.new("Frame")
+contentFrame.Parent = mainFrame
+contentFrame.Size = UDim2.new(1, -70, 1, -10)
+contentFrame.Position = UDim2.new(0, 65, 0, 5)
+contentFrame.BackgroundTransparency = 1
+
+-- Main Sayfası (Işık Ayarları)
+local mainPage = Instance.new("ScrollingFrame")
+mainPage.Parent = contentFrame
+mainPage.Size = UDim2.new(1, 0, 1, 0)
+mainPage.BackgroundTransparency = 1
+mainPage.CanvasSize = UDim2.new(0, 0, 0, 250)
+mainPage.ScrollBarThickness = 4
+mainPage.Visible = true
+
+local mpLayout = Instance.new("UIListLayout")
+mpLayout.Parent = mainPage
+mpLayout.SortOrder = Enum.SortOrder.LayoutOrder
+mpLayout.Padding = UDim.new(0, 8)
+
+-- Işık Ayarı: Brightness
+local brightLabel = Instance.new("TextLabel")
+brightLabel.Parent = mainPage
+brightLabel.Size = UDim2.new(1, -10, 0, 30)
+brightLabel.BackgroundTransparency = 1
+brightLabel.Text = "Brightness: 2.4"
+brightLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+brightLabel.TextSize = 14
+brightLabel.Font = Enum.Font.GothamMedium
+brightLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Işık Ayarı: ClockTime
+local timeLabel = Instance.new("TextLabel")
+timeLabel.Parent = mainPage
+timeLabel.Size = UDim2.new(1, -10, 0, 30)
+timeLabel.BackgroundTransparency = 1
+timeLabel.Text = "Clock Time (Saat): 15"
+timeLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+timeLabel.TextSize = 14
+timeLabel.Font = Enum.Font.GothamMedium
+timeLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Su Dalgası Ayarı
+local waterLabel = Instance.new("TextLabel")
+waterLabel.Parent = mainPage
+waterLabel.Size = UDim2.new(1, -10, 0, 30)
+waterLabel.BackgroundTransparency = 1
+waterLabel.Text = "Water Transparency: 0.85"
+waterLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+waterLabel.TextSize = 14
+waterLabel.Font = Enum.Font.GothamMedium
+waterLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Global Chat Sayfası
+local chatPage = Instance.new("Frame")
+chatPage.Parent = contentFrame
+chatPage.Size = UDim2.new(1, 0, 1, 0)
+chatPage.BackgroundTransparency = 1
+chatPage.Visible = false
+
+local chatInfo = Instance.new("TextLabel")
+chatInfo.Parent = chatPage
+chatInfo.Size = UDim2.new(1, -10, 1, 0)
+chatInfo.BackgroundTransparency = 1
+chatInfo.Text = "Global Chat loading..."
+chatInfo.TextColor3 = Color3.fromRGB(180, 180, 180)
+chatInfo.TextSize = 14
+chatInfo.Font = Enum.Font.Gotham
+chatInfo.TextWrapped = true
+
+-- Tab Değiştirme Mantığı
+tabMain.MouseButton1Click:Connect(function()
+    mainPage.Visible = true
+    chatPage.Visible = false
+    tabMain.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    tabChat.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+end)
+
+local chatLoaded = false
+tabChat.MouseButton1Click:Connect(function()
+    mainPage.Visible = false
+    chatPage.Visible = true
+    tabChat.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    tabMain.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+
+    if not chatLoaded then
+        chatLoaded = true
+        chatInfo.Text = "Connecting to Global Chat..."
+        pcall(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/halilibrahimseviml1/Global-chat/refs/heads/main/Global-chat"))()
+            chatInfo.Text = "Global Chat loaded successfully!"
+        end)
+    end
+end)
+
+-- Gerçekçi Işıklandırma Fonksiyonları
 local active = false
 
--- Gerçekçi Işıklandırma, Materyal ve Su Ayarları
 local function applyUltraRealism()
-    Lighting.ClockTime = 15 -- Gerçekçi gün ışığı açısı
+    Lighting.ClockTime = 15
     Lighting.GlobalShadows = true
     Lighting.Brightness = 2.4
 
-    -- Materyallere göre ışık yansıması ve doku parlaklıkları (PBR)
     Lighting.EnvironmentDiffuseScale = 1
     Lighting.EnvironmentSpecularScale = 1
     Lighting.ExposureCompensation = 0.1
 
-    -- Doğal Işık Tonları
     Lighting.OutdoorAmbient = Color3.fromRGB(140, 145, 150)
     Lighting.Ambient = Color3.fromRGB(80, 85, 90)
     Lighting.FogEnd = 100000
 
-    -- Su Gerçekçiliği (Net yansıma, berraklık ve doğal dalgalar)
     if Terrain then
         Terrain.WaterWaveSize = 0.12
         Terrain.WaterWaveSpeed = 7
@@ -115,7 +297,6 @@ local function applyUltraRealism()
         Terrain.WaterColor = Color3.fromRGB(35, 85, 115)
     end
 
-    -- Doğal Atmosfer Derinliği
     local atmos = Lighting:FindFirstChild("RealAtmosphere")
     if not atmos then
         atmos = Instance.new("Atmosphere", Lighting)
@@ -128,7 +309,6 @@ local function applyUltraRealism()
     atmos.Color = Color3.fromRGB(200, 220, 240)
     atmos.Decay = Color3.fromRGB(150, 170, 190)
 
-    -- Gerçekçi Renk Dengesi
     local cc = Lighting:FindFirstChild("RealCC")
     if not cc then
         cc = Instance.new("ColorCorrectionEffect", Lighting)
@@ -139,7 +319,6 @@ local function applyUltraRealism()
     cc.Contrast = 0.08
     cc.TintColor = Color3.fromRGB(255, 255, 255)
 
-    -- Güneşe Bağlı Işık Huzmeleri
     local sun = Lighting:FindFirstChild("RealSun")
     if not sun then
         sun = Instance.new("SunRaysEffect", Lighting)
@@ -149,7 +328,6 @@ local function applyUltraRealism()
     sun.Intensity = 0.15
     sun.Spread = 0.85
 
-    -- Alan Derinliği (Kamera Odağı)
     local dof = Lighting:FindFirstChild("RealDOF")
     if not dof then
         dof = Instance.new("DepthOfFieldEffect", Lighting)
@@ -188,15 +366,15 @@ local function resetLighting()
     end
 end
 
--- Tıklama Olayı
+-- Şimşek Butonuna Tıklama Olayı (Atmosferi ve Menüyü Kontrol eder)
 btn.MouseButton1Click:Connect(function()
-    -- Tıklandığı an ortadaki yazıyı tamamen siler
     if msg then
         msg:Destroy()
         msg = nil
     end
 
     active = not active
+    mainFrame.Visible = active
 
     if active then
         applyUltraRealism()
