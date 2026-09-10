@@ -19,7 +19,19 @@ local originalLighting = {
     FogColor = Lighting.FogColor,
     ExposureCompensation = Lighting.ExposureCompensation,
     EnvironmentDiffuseScale = Lighting.EnvironmentDiffuseScale,
-    EnvironmentSpecularScale = Lighting.EnvironmentSpecularScale
+    EnvironmentSpecularScale = Lighting.EnvironmentSpecularScale,
+    GeographicLatitude = Lighting.GeographicLatitude
+}
+
+-- Özelleştirilebilir Değerler
+local config = {
+    Brightness = 2.4,
+    ClockTime = 15,
+    WaterTransparency = 0.85,
+    AtmosphereDensity = 0.22,
+    FogEnd = 100000,
+    SunIntensity = 0.15,
+    GlobalShadows = true
 }
 
 local ScreenGui = Instance.new("ScreenGui")
@@ -86,11 +98,11 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Ana Menü Penceresi (Draggable & Mobil Uyumlu)
+-- Ana Menü Penceresi
 local mainFrame = Instance.new("Frame")
 mainFrame.Parent = ScreenGui
-mainFrame.Size = UDim2.new(0, 420, 0, 280)
-mainFrame.Position = UDim2.new(0.5, -210, 0.5, -140)
+mainFrame.Size = UDim2.new(0, 420, 0, 340)
+mainFrame.Position = UDim2.new(0.5, -210, 0.5, -170)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 mainFrame.Visible = false
 
@@ -103,7 +115,7 @@ mainStroke.Color = Color3.fromRGB(50, 50, 50)
 mainStroke.Thickness = 2
 mainStroke.Parent = mainFrame
 
--- Menü Sürükleme Mantığı (Header veya Frame üzerinden)
+-- Menü Sürükleme Mantığı
 local draggingMenu = false
 local dragInputMenu, dragStartMenu, startPosMenu
 
@@ -145,7 +157,6 @@ local leftCorner = Instance.new("UICorner")
 leftCorner.CornerRadius = UDim.new(0, 10)
 leftCorner.Parent = leftBar
 
--- Tab Butonları için Layout
 local tabLayout = Instance.new("UIListLayout")
 tabLayout.Parent = leftBar
 tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -189,7 +200,7 @@ local mainPage = Instance.new("ScrollingFrame")
 mainPage.Parent = contentFrame
 mainPage.Size = UDim2.new(1, 0, 1, 0)
 mainPage.BackgroundTransparency = 1
-mainPage.CanvasSize = UDim2.new(0, 0, 0, 250)
+mainPage.CanvasSize = UDim2.new(0, 0, 0, 300)
 mainPage.ScrollBarThickness = 4
 mainPage.Visible = true
 
@@ -198,38 +209,82 @@ mpLayout.Parent = mainPage
 mpLayout.SortOrder = Enum.SortOrder.LayoutOrder
 mpLayout.Padding = UDim.new(0, 8)
 
--- Işık Ayarı: Brightness
-local brightLabel = Instance.new("TextLabel")
-brightLabel.Parent = mainPage
-brightLabel.Size = UDim2.new(1, -10, 0, 30)
-brightLabel.BackgroundTransparency = 1
-brightLabel.Text = "Brightness: 2.4"
-brightLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
-brightLabel.TextSize = 14
-brightLabel.Font = Enum.Font.GothamMedium
-brightLabel.TextXAlignment = Enum.TextXAlignment.Left
+-- Realistic Atmosphere On/Off Butonu
+local atmosBtn = Instance.new("TextButton")
+atmosBtn.Parent = mainPage
+atmosBtn.Size = UDim2.new(1, -10, 0, 36)
+atmosBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+atmosBtn.Text = "Realistic Atmosphere: OFF"
+atmosBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+atmosBtn.TextSize = 13
+atmosBtn.Font = Enum.Font.GothamBold
+local atmosCorner = Instance.new("UICorner")
+atmosCorner.CornerRadius = UDim.new(0, 6)
+atmosCorner.Parent = atmosBtn
 
--- Işık Ayarı: ClockTime
-local timeLabel = Instance.new("TextLabel")
-timeLabel.Parent = mainPage
-timeLabel.Size = UDim2.new(1, -10, 0, 30)
-timeLabel.BackgroundTransparency = 1
-timeLabel.Text = "Clock Time (Saat): 15"
-timeLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
-timeLabel.TextSize = 14
-timeLabel.Font = Enum.Font.GothamMedium
-timeLabel.TextXAlignment = Enum.TextXAlignment.Left
+-- Çerçeve (Stroke) Geri Bildirimi İçin
+local atmosStroke = Instance.new("UIStroke")
+atmosStroke.Parent = atmosBtn
+atmosStroke.Color = Color3.fromRGB(255, 220, 0)
+atmosStroke.Thickness = 2
+atmosStroke.Enabled = false
 
--- Su Dalgası Ayarı
-local waterLabel = Instance.new("TextLabel")
-waterLabel.Parent = mainPage
-waterLabel.Size = UDim2.new(1, -10, 0, 30)
-waterLabel.BackgroundTransparency = 1
-waterLabel.Text = "Water Transparency: 0.85"
-waterLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
-waterLabel.TextSize = 14
-waterLabel.Font = Enum.Font.GothamMedium
-waterLabel.TextXAlignment = Enum.TextXAlignment.Left
+-- Ayar Oluşturma Yardımcı Fonksiyonu (Artır/Azalt)
+local function createSettingRow(labelText, initialValue, step, minVal, maxVal, callback)
+    local container = Instance.new("Frame")
+    container.Parent = mainPage
+    container.Size = UDim2.new(1, -10, 0, 32)
+    container.BackgroundTransparency = 1
+
+    local label = Instance.new("TextLabel")
+    label.Parent = container
+    label.Size = UDim2.new(0.65, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = labelText .. ": " .. initialValue
+    label.TextColor3 = Color3.fromRGB(220, 220, 220)
+    label.TextSize = 13
+    label.Font = Enum.Font.GothamMedium
+    label.TextXAlignment = Enum.TextXAlignment.Left
+
+    local minusBtn = Instance.new("TextButton")
+    minusBtn.Parent = container
+    minusBtn.Size = UDim2.new(0, 32, 1, 0)
+    minusBtn.Position = UDim2.new(0.68, 0, 0, 0)
+    minusBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    minusBtn.Text = "-"
+    minusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    minusBtn.TextSize = 16
+    local mCorner = Instance.new("UICorner")
+    mCorner.CornerRadius = UDim.new(0, 4)
+    mCorner.Parent = minusBtn
+
+    local plusBtn = Instance.new("TextButton")
+    plusBtn.Parent = container
+    plusBtn.Size = UDim2.new(0, 32, 1, 0)
+    plusBtn.Position = UDim2.new(0.85, 0, 0, 0)
+    plusBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    plusBtn.Text = "+"
+    plusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    plusBtn.TextSize = 16
+    local pCorner = Instance.new("UICorner")
+    pCorner.CornerRadius = UDim.new(0, 4)
+    pCorner.Parent = plusBtn
+
+    local val = initialValue
+    minusBtn.MouseButton1Click:Connect(function()
+        val = math.clamp(val - step, minVal, maxVal)
+        val = math.floor(val * 100 + 0.5) / 100
+        label.Text = labelText .. ": " .. val
+        callback(val)
+    end)
+
+    plusBtn.MouseButton1Click:Connect(function()
+        val = math.clamp(val + step, minVal, maxVal)
+        val = math.floor(val * 100 + 0.5) / 100
+        label.Text = labelText .. ": " .. val
+        callback(val)
+    end)
+end
 
 -- Global Chat Sayfası
 local chatPage = Instance.new("Frame")
@@ -277,9 +332,10 @@ end)
 local active = false
 
 local function applyUltraRealism()
-    Lighting.ClockTime = 15
-    Lighting.GlobalShadows = true
-    Lighting.Brightness = 2.4
+    Lighting.GeographicLatitude = 0
+    Lighting.ClockTime = config.ClockTime
+    Lighting.GlobalShadows = config.GlobalShadows
+    Lighting.Brightness = config.Brightness
 
     Lighting.EnvironmentDiffuseScale = 1
     Lighting.EnvironmentSpecularScale = 1
@@ -287,12 +343,12 @@ local function applyUltraRealism()
 
     Lighting.OutdoorAmbient = Color3.fromRGB(140, 145, 150)
     Lighting.Ambient = Color3.fromRGB(80, 85, 90)
-    Lighting.FogEnd = 100000
+    Lighting.FogEnd = config.FogEnd
 
     if Terrain then
         Terrain.WaterWaveSize = 0.12
         Terrain.WaterWaveSpeed = 7
-        Terrain.WaterTransparency = 0.85
+        Terrain.WaterTransparency = config.WaterTransparency
         Terrain.WaterReflectance = 1
         Terrain.WaterColor = Color3.fromRGB(35, 85, 115)
     end
@@ -303,7 +359,7 @@ local function applyUltraRealism()
         atmos.Name = "RealAtmosphere"
     end
     atmos.Enabled = true
-    atmos.Density = 0.22
+    atmos.Density = config.AtmosphereDensity
     atmos.Offset = 0.25
     atmos.Haze = 0.8
     atmos.Color = Color3.fromRGB(200, 220, 240)
@@ -325,7 +381,7 @@ local function applyUltraRealism()
         sun.Name = "RealSun"
     end
     sun.Enabled = true
-    sun.Intensity = 0.15
+    sun.Intensity = config.SunIntensity
     sun.Spread = 0.85
 
     local dof = Lighting:FindFirstChild("RealDOF")
@@ -352,6 +408,7 @@ local function resetLighting()
     Lighting.ExposureCompensation = originalLighting.ExposureCompensation
     Lighting.EnvironmentDiffuseScale = originalLighting.EnvironmentDiffuseScale
     Lighting.EnvironmentSpecularScale = originalLighting.EnvironmentSpecularScale
+    Lighting.GeographicLatitude = originalLighting.GeographicLatitude
 
     for _, effectName in ipairs({"RealAtmosphere", "RealCC", "RealSun", "RealDOF"}) do
         local fx = Lighting:FindFirstChild(effectName)
@@ -366,22 +423,76 @@ local function resetLighting()
     end
 end
 
--- Şimşek Butonuna Tıklama Olayı (Atmosferi ve Menüyü Kontrol eder)
+-- Ayarları Panel Üzerine Ekleme
+createSettingRow("Brightness", config.Brightness, 0.2, 0, 10, function(v)
+    config.Brightness = v
+    if active then Lighting.Brightness = v end
+end)
+
+createSettingRow("Clock Time", config.ClockTime, 1, 0, 24, function(v)
+    config.ClockTime = v
+    if active then Lighting.ClockTime = v end
+end)
+
+createSettingRow("Water Trans.", config.WaterTransparency, 0.05, 0, 1, function(v)
+    config.WaterTransparency = v
+    if active and Terrain then Terrain.WaterTransparency = v end
+end)
+
+createSettingRow("Atmos Density", config.AtmosphereDensity, 0.02, 0, 1, function(v)
+    config.AtmosphereDensity = v
+    if active then
+        local atmos = Lighting:FindFirstChild("RealAtmosphere")
+        if atmos then atmos.Density = v end
+    end
+end)
+
+createSettingRow("Fog End", config.FogEnd, 5000, 1000, 200000, function(v)
+    config.FogEnd = v
+    if active then Lighting.FogEnd = v end
+end)
+
+createSettingRow("Sun Intensity", config.SunIntensity, 0.05, 0, 1, function(v)
+    config.SunIntensity = v
+    if active then
+        local sun = Lighting:FindFirstChild("RealSun")
+        if sun then sun.Intensity = v end
+    end
+end)
+
+-- Atmosphere Butonuna Tıklama Olayı (Çerçeve ve Renk Geri Bildirimi Eklendi)
+atmosBtn.MouseButton1Click:Connect(function()
+    active = not active
+    if active then
+        applyUltraRealism()
+        atmosBtn.Text = "Realistic Atmosphere: ON"
+        atmosBtn.BackgroundColor3 = Color3.fromRGB(255, 220, 0)
+        atmosBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+        atmosStroke.Enabled = true
+    else
+        resetLighting()
+        atmosBtn.Text = "Realistic Atmosphere: OFF"
+        atmosBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        atmosBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+        atmosStroke.Enabled = false
+    end
+end)
+
+-- Şimşek Butonuna Tıklama Olayı (Sadece Menüyü Açıp Kapatır)
+local menuOpen = false
 btn.MouseButton1Click:Connect(function()
     if msg then
         msg:Destroy()
         msg = nil
     end
 
-    active = not active
-    mainFrame.Visible = active
+    menuOpen = not menuOpen
+    mainFrame.Visible = menuOpen
 
-    if active then
-        applyUltraRealism()
+    if menuOpen then
         btn.BackgroundColor3 = Color3.fromRGB(255, 220, 0)
         btn.TextColor3 = Color3.fromRGB(0, 0, 0)
     else
-        resetLighting()
         btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
         btn.TextColor3 = Color3.fromRGB(200, 200, 200)
     end
