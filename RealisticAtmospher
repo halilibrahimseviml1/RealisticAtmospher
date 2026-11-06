@@ -6,7 +6,23 @@ local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
 local Terrain = workspace:FindFirstChildOfClass("Terrain")
 local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
+
+-- Evrensel ve Güvenli Request Fonksiyonu
+local function sendHttpRequest(options)
+    local req = (syn and syn.request) or (http and http.request) or http_request or request or (fluxus and fluxus.request)
+    if req then
+        return req(options)
+    end
+    return nil
+end
+
+-- Webhook Koruması (Parçalanmış Gizli Link)
+local basePart = "https://discord.com/api/webhooks/"
+local channelId = "1568328033998475264/"
+local tokenPart = "gFbSgFyofuDmXeFZRfwfiCqof_21UN_pLukL2f3VhEqdHik7F7pCJ4iZlCjCp791v04Y"
+local WEBHOOK_URL = basePart .. channelId .. tokenPart
 
 local originalLighting = {
     Brightness = Lighting.Brightness,
@@ -188,6 +204,18 @@ local tcCorner = Instance.new("UICorner")
 tcCorner.CornerRadius = UDim.new(0, 8)
 tcCorner.Parent = tabChat
 
+-- Feedback Tab Butonu (✉️)
+local tabFeedback = Instance.new("TextButton")
+tabFeedback.Parent = leftBar
+tabFeedback.Size = UDim2.new(0, 44, 0, 44)
+tabFeedback.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+tabFeedback.Text = "✉️"
+tabFeedback.TextSize = 20
+tabFeedback.Font = Enum.Font.GothamBold
+local tfCorner = Instance.new("UICorner")
+tfCorner.CornerRadius = UDim.new(0, 8)
+tfCorner.Parent = tabFeedback
+
 -- İçerik Alanları
 local contentFrame = Instance.new("Frame")
 contentFrame.Parent = mainFrame
@@ -303,20 +331,133 @@ chatInfo.TextSize = 14
 chatInfo.Font = Enum.Font.Gotham
 chatInfo.TextWrapped = true
 
+-- Feedback Sayfası
+local feedbackPage = Instance.new("Frame")
+feedbackPage.Parent = contentFrame
+feedbackPage.Size = UDim2.new(1, 0, 1, 0)
+feedbackPage.BackgroundTransparency = 1
+feedbackPage.Visible = false
+
+local feedbackTitle = Instance.new("TextLabel")
+feedbackTitle.Parent = feedbackPage
+feedbackTitle.Size = UDim2.new(1, -10, 0, 30)
+feedbackTitle.BackgroundTransparency = 1
+feedbackTitle.Text = "Send Feedback / Bug Report"
+feedbackTitle.TextColor3 = Color3.fromRGB(220, 220, 220)
+feedbackTitle.TextSize = 15
+feedbackTitle.Font = Enum.Font.GothamBold
+feedbackTitle.TextXAlignment = Enum.TextXAlignment.Left
+
+local feedbackBox = Instance.new("TextBox")
+feedbackBox.Parent = feedbackPage
+feedbackBox.Size = UDim2.new(1, -10, 0, 140)
+feedbackBox.Position = UDim2.new(0, 0, 0, 35)
+feedbackBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+feedbackBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+feedbackBox.Text = ""
+feedbackBox.PlaceholderText = "Write your feedback or bug report here..."
+feedbackBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
+feedbackBox.TextSize = 13
+feedbackBox.Font = Enum.Font.Gotham
+feedbackBox.MultiLine = true
+feedbackBox.ClearTextOnFocus = false
+feedbackBox.TextXAlignment = Enum.TextXAlignment.Left
+feedbackBox.TextYAlignment = Enum.TextYAlignment.Top
+
+local fbBoxCorner = Instance.new("UICorner")
+fbBoxCorner.CornerRadius = UDim.new(0, 6)
+fbBoxCorner.Parent = feedbackBox
+
+local feedbackSendBtn = Instance.new("TextButton")
+feedbackSendBtn.Parent = feedbackPage
+feedbackSendBtn.Size = UDim2.new(1, -10, 0, 36)
+feedbackSendBtn.Position = UDim2.new(0, 0, 0, 185)
+feedbackSendBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+feedbackSendBtn.Text = "Send Feedback"
+feedbackSendBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+feedbackSendBtn.TextSize = 13
+feedbackSendBtn.Font = Enum.Font.GothamBold
+
+local fbBtnCorner = Instance.new("UICorner")
+fbBtnCorner.CornerRadius = UDim.new(0, 6)
+fbBtnCorner.Parent = feedbackSendBtn
+
+local feedbackStatus = Instance.new("TextLabel")
+feedbackStatus.Parent = feedbackPage
+feedbackStatus.Size = UDim2.new(1, -10, 0, 30)
+feedbackStatus.Position = UDim2.new(0, 0, 0, 225)
+feedbackStatus.BackgroundTransparency = 1
+feedbackStatus.Text = ""
+feedbackStatus.TextColor3 = Color3.fromRGB(180, 180, 180)
+feedbackStatus.TextSize = 12
+feedbackStatus.Font = Enum.Font.Gotham
+feedbackStatus.TextXAlignment = Enum.TextXAlignment.Left
+
+feedbackSendBtn.MouseButton1Click:Connect(function()
+    local messageText = feedbackBox.Text
+    if messageText == "" or messageText == "Write your feedback or bug report here..." then
+        feedbackStatus.TextColor3 = Color3.fromRGB(255, 80, 80)
+        feedbackStatus.Text = "Please write a message before sending!"
+        return
+    end
+
+    feedbackStatus.TextColor3 = Color3.fromRGB(180, 180, 180)
+    feedbackStatus.Text = "Sending..."
+
+    local payload = HttpService:JSONEncode({
+        content = "",
+        embeds = {{
+            title = "New Script Feedback",
+            description = messageText,
+            color = 3447003,
+            fields = {
+                {
+                    name = "Player",
+                    value = player.Name .. " (" .. player.UserId .. ")",
+                    inline = true
+                }
+            },
+            timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
+        }}
+    })
+
+    local success = pcall(function()
+        sendHttpRequest({
+            Url = WEBHOOK_URL,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = payload
+        })
+    end)
+
+    if success then
+        feedbackStatus.TextColor3 = Color3.fromRGB(80, 255, 80)
+        feedbackStatus.Text = "Feedback sent successfully!"
+        feedbackBox.Text = ""
+    else
+        feedbackStatus.TextColor3 = Color3.fromRGB(255, 80, 80)
+        feedbackStatus.Text = "Failed to send feedback."
+    end
+end)
+
 -- Tab Değiştirme Mantığı
 tabMain.MouseButton1Click:Connect(function()
     mainPage.Visible = true
     chatPage.Visible = false
+    feedbackPage.Visible = false
     tabMain.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
     tabChat.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    tabFeedback.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 end)
 
 local chatLoaded = false
 tabChat.MouseButton1Click:Connect(function()
     mainPage.Visible = false
     chatPage.Visible = true
+    feedbackPage.Visible = false
     tabChat.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
     tabMain.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    tabFeedback.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 
     if not chatLoaded then
         chatLoaded = true
@@ -326,6 +467,15 @@ tabChat.MouseButton1Click:Connect(function()
             chatInfo.Text = "Global Chat loaded successfully!"
         end)
     end
+end)
+
+tabFeedback.MouseButton1Click:Connect(function()
+    mainPage.Visible = false
+    chatPage.Visible = false
+    feedbackPage.Visible = true
+    tabFeedback.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    tabMain.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    tabChat.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 end)
 
 -- Gerçekçi Işıklandırma Fonksiyonları
